@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     // Axios defaults
-    axios.defaults.baseURL = 'https://demo-6g4k.onrender.com';
+    axios.defaults.baseURL = 'https://demo-6g4k.onrender.com/api';
 
     useEffect(() => {
         const loadUser = async () => {
