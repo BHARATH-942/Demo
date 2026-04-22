@@ -19,7 +19,7 @@ app.use(
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
-app.options("/*", cors());
+
 app.use(express.json({ extended: false }));
 
 app.get('/', (req, res) => res.send('API Running'));
