@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
     const [loading, setLoading] = useState(true);
 
     // Axios defaults
-    axios.defaults.baseURL = 'https://backend-app-tedn.onrender.com/api';
+    axios.defaults.baseURL = 'https://demo-6g4k.onrender.com';
 
     useEffect(() => {
         const loadUser = async () => {
