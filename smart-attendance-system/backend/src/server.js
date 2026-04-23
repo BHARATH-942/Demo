@@ -14,7 +14,7 @@ app.use(
     origin: [
       "http://localhost:5173",
       "https://demo-wsfl.vercel.app",
-      https://demo-wsfl-git-main-yamjalabharathreddy942-4413s-projects.vercel.app"
+      "https://demo-wsfl-git-main-yamjalabharathreddy942-4413s-projects.vercel.app"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization","x-auth-token"],
