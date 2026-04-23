@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const res = await axios.post('/auth/login', { email, password });
+            const res = await axios.post('https://demo-6g4k.onrender.com/api/auth/login', { email, password });
             localStorage.setItem('token', res.data.token);
             setToken(res.data.token);
             return true;
