@@ -1,3 +1,8 @@
+import React, { createContext, useState, useEffect } from 'react';
+import axios from 'axios';
+
+export const AuthContext = createContext();
+
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(localStorage.getItem('token'));
@@ -5,26 +10,31 @@ export const AuthProvider = ({ children }) => {
 
     const API = "https://demo-6g4k.onrender.com/api";
 
+    // Load logged-in user (IMPORTANT FIX: no /api/auth call anymore)
     useEffect(() => {
         const loadUser = async () => {
             if (token) {
                 try {
-                    const res = await axios.get(`${API}/auth`, {
+                    const res = await axios.get(`${API}/auth/me`, {
                         headers: {
                             'x-auth-token': token
                         }
                     });
-                    setUser(res.data);
+
+                    setUser(res.data.user);
                 } catch (err) {
+                    console.log("Session expired or invalid token");
                     logout();
                 }
             }
+
             setLoading(false);
         };
 
         loadUser();
     }, [token]);
 
+    // LOGIN
     const login = async (email, password) => {
         try {
             const res = await axios.post(`${API}/auth/login`, {
@@ -43,6 +53,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // REGISTER
     const register = async (name, email, password, role) => {
         try {
             const res = await axios.post(`${API}/auth/register`, {
@@ -63,6 +74,7 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // LOGOUT
     const logout = () => {
         localStorage.removeItem('token');
         setToken(null);
@@ -70,7 +82,14 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+        <AuthContext.Provider value={{
+            user,
+            token,
+            loading,
+            login,
+            register,
+            logout
+        }}>
             {children}
         </AuthContext.Provider>
     );
