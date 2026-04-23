@@ -1,30 +1,23 @@
-import React, { createContext, useState, useEffect } from 'react';
-import axios from 'axios';
-
-export const AuthContext = createContext();
-
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [token, setToken] = useState(localStorage.getItem('token'));
     const [loading, setLoading] = useState(true);
 
-    // Axios defaults
-    axios.defaults.baseURL = 'https://demo-6g4k.onrender.com/api';
+    const API = "https://demo-6g4k.onrender.com/api";
 
     useEffect(() => {
         const loadUser = async () => {
             if (token) {
-                axios.defaults.headers.common['x-auth-token'] = token;
                 try {
-                    const res = await axios.get('/auth');
+                    const res = await axios.get(`${API}/auth`, {
+                        headers: {
+                            'x-auth-token': token
+                        }
+                    });
                     setUser(res.data);
                 } catch (err) {
-                    localStorage.removeItem('token');
-                    setToken(null);
-                    setUser(null);
+                    logout();
                 }
-            } else {
-                delete axios.defaults.headers.common['x-auth-token'];
             }
             setLoading(false);
         };
@@ -34,24 +27,38 @@ export const AuthProvider = ({ children }) => {
 
     const login = async (email, password) => {
         try {
-            const res = await axios.post('https://demo-6g4k.onrender.com/api/auth/login', { email, password });
+            const res = await axios.post(`${API}/auth/login`, {
+                email,
+                password
+            });
+
             localStorage.setItem('token', res.data.token);
             setToken(res.data.token);
+            setUser(res.data.user);
+
             return true;
         } catch (err) {
-            console.error(err.response?.data?.msg || 'Login failed');
+            console.log(err.response?.data?.msg || "Login failed");
             return false;
         }
     };
 
     const register = async (name, email, password, role) => {
         try {
-            const res = await axios.post('/auth/register', { name, email, password, role });
+            const res = await axios.post(`${API}/auth/register`, {
+                name,
+                email,
+                password,
+                role
+            });
+
             localStorage.setItem('token', res.data.token);
             setToken(res.data.token);
+            setUser(res.data.user);
+
             return true;
         } catch (err) {
-            console.error(err.response?.data?.msg || 'Registration failed');
+            console.log(err.response?.data?.msg || "Registration failed");
             return false;
         }
     };
