@@ -32,6 +32,10 @@ const ClassSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    endTime: {
+        type: Date,
+        required: true
+    },
     date: {
         type: Date,
         default: Date.now

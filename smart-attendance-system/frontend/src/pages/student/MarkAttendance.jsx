@@ -3,7 +3,7 @@ import * as faceapi from 'face-api.js';
 import axios from 'axios';
 import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Camera, MapPin, KeyRound, CheckCircle2, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Camera, MapPin, KeyRound, CheckCircle2, AlertTriangle, ShieldAlert, Bluetooth, BluetoothSearching } from 'lucide-react';
 
 const MODEL_URL = 'https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights';
 
@@ -12,7 +12,7 @@ const MarkAttendance = () => {
     const navigate = useNavigate();
     const videoRef = useRef();
 
-    const [step, setStep] = useState(1); // 1: code, 2: scan, 3: result
+    const [step, setStep] = useState(1); // 1: code, 2: bluetooth, 3: scan, 4: result
     const [sessionCode, setSessionCode] = useState('');
     const [classData, setClassData] = useState(null);
     const [status, setStatus] = useState('');
@@ -21,6 +21,9 @@ const MarkAttendance = () => {
     const [baseDescriptor, setBaseDescriptor] = useState(null);
     const [location, setLocation] = useState(null);
     const [isValidating, setIsValidating] = useState(false);
+
+    // Bluetooth state
+    const [isBluetoothSupported, setIsBluetoothSupported] = useState(true);
 
     // Load models
     useEffect(() => {
@@ -38,6 +41,11 @@ const MarkAttendance = () => {
             }
         };
         loadModels();
+
+        // Check Bluetooth Support
+        if (!navigator.bluetooth) {
+            setIsBluetoothSupported(false);
+        }
     }, []);
 
     // Fetch Base Descriptor
@@ -64,12 +72,46 @@ const MarkAttendance = () => {
             const res = await axios.get(`/classes/verify/${sessionCode}`);
             if (res.data.valid) {
                 setClassData(res.data.class);
-                setStep(2);
+                setStep(2); // Proceed to Bluetooth step
+                setStatus('');
+            }
+        } catch (err) {
+            setStatus(err.response?.data?.msg || 'Invalid or inactive session code.');
+        }
+    };
+
+    const handleBluetoothScan = async () => {
+        if (!isBluetoothSupported) {
+            setStatus('Web Bluetooth API is not supported in this browser. Please use Chrome/Edge.');
+            return;
+        }
+
+        try {
+            setStatus('Requesting Bluetooth device...');
+            // In a real environment, the ESP32 broadcasts a specific name or service UUID.
+            // Using name 'Classroom_101' as requested by user.
+            const device = await navigator.bluetooth.requestDevice({
+                filters: [{ name: 'CLASSROOM_101' }],
+                optionalServices: [] // Add service UUIDs here if needed later
+            });
+
+            if (device) {
+                // Device found and selected by the user!
+                setStatus('Bluetooth verified successfully!');
+                setStep(3); // Proceed to Face Scan
                 startVideo();
             }
         } catch (err) {
-            setStatus('Invalid or inactive session code.');
+            console.error("Bluetooth error", err);
+            setStatus('Failed to verify Bluetooth proximity. Ensure you are near the classroom beacon.');
         }
+    };
+
+    // Fallback for development if user doesn't have an ESP32 around:
+    const bypassBluetoothForDev = () => {
+        setStatus('Bypassing Bluetooth for Development...');
+        setStep(3);
+        startVideo();
     };
 
     const startVideo = () => {
@@ -156,7 +198,7 @@ const MarkAttendance = () => {
                 location: currentLocation
             });
             stopVideo();
-            setStep(3);
+            setStep(4);
         } catch (err) {
             setStatus(err.response?.data?.msg || 'Attendance failed');
             setIsValidating(false);
@@ -169,13 +211,14 @@ const MarkAttendance = () => {
                 Mark Attendance
             </h1>
 
-            {status && step !== 3 && (
+            {status && step !== 4 && (
                 <div className="mb-6 p-4 bg-yellow-50 text-yellow-800 rounded-xl flex items-center space-x-3 border border-yellow-200">
-                    <AlertTriangle size={20} />
+                    <AlertTriangle size={20} className="flex-shrink-0" />
                     <span className="font-medium">{status}</span>
                 </div>
             )}
 
+            {/* STEP 1: SESSION CODE */}
             {step === 1 && (
                 <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
                     <div className="flex justify-center mb-6 text-blue-600">
@@ -200,7 +243,46 @@ const MarkAttendance = () => {
                 </div>
             )}
 
+            {/* STEP 2: BLUETOOTH BEACON SCAN */}
             {step === 2 && (
+                <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center">
+                    <div className="flex justify-center mb-6 text-indigo-600">
+                        <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center">
+                            <BluetoothSearching size={32} />
+                        </div>
+                    </div>
+                    <h2 className="text-xl font-bold text-center mb-2 text-gray-800">Proximity Verification</h2>
+                    <p className="text-center text-gray-500 mb-8 max-w-sm">
+                        We need to verify you are physically inside the classroom by detecting the local Bluetooth Beacon (`Classroom_101`).
+                    </p>
+
+                    {!isBluetoothSupported && (
+                        <div className="bg-red-50 text-red-700 p-4 rounded-xl mb-6 text-sm border border-red-200">
+                            Your browser does not support Bluetooth functionality. Please switch to Chrome or Edge on Windows/Android/Mac.
+                        </div>
+                    )}
+
+                    <button
+                        onClick={handleBluetoothScan}
+                        disabled={!isBluetoothSupported}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition shadow disabled:opacity-50 mb-4 flex items-center justify-center space-x-2"
+                    >
+                        <Bluetooth size={20} />
+                        <span>Scan for Classroom Beacon</span>
+                    </button>
+
+                    {/* Developer bypass button just in case user is testing without the real hardware */}
+                    <button
+                        onClick={bypassBluetoothForDev}
+                        className="text-sm text-gray-400 hover:text-gray-600 underline"
+                    >
+                        Skip Bluetooth Verification (Dev Only)
+                    </button>
+                </div>
+            )}
+
+            {/* STEP 3: FACE RECOGNITION */}
+            {step === 3 && (
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6">
                     <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-200">
                         <div>
@@ -239,7 +321,7 @@ const MarkAttendance = () => {
                     <button
                         onClick={handleMark}
                         disabled={isValidating || !modelsLoaded || !baseDescriptor}
-                        className="w-full flex justify-center items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition shadow disabled:opacity-50"
+                        className="w-full flex justify-center items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl transition shadow disabled:opacity-50"
                     >
                         <Camera size={20} />
                         <span>{isValidating ? 'Validating...' : 'Verify & Mark Present'}</span>
@@ -247,7 +329,8 @@ const MarkAttendance = () => {
                 </div>
             )}
 
-            {step === 3 && (
+            {/* STEP 4: SUCCESS */}
+            {step === 4 && (
                 <div className="bg-white p-10 rounded-2xl shadow-sm border border-gray-100 text-center">
                     <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6 transform scale-110">
                         <CheckCircle2 size={48} />

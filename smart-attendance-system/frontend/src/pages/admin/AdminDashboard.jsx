@@ -13,7 +13,7 @@ const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
 
     const [showClassModal, setShowClassModal] = useState(false);
-    const [newClass, setNewClass] = useState({ subject: '', classCode: '', radius: 100, lat: '', lng: '' });
+    const [newClass, setNewClass] = useState({ subject: '', classCode: '', radius: 100, lat: '', lng: '', duration: 60 });
 
     useEffect(() => {
         fetchData();
@@ -48,10 +48,11 @@ const AdminDashboard = () => {
                 subject: newClass.subject,
                 classCode: newClass.classCode.toUpperCase(),
                 radius: parseInt(newClass.radius),
-                location: loc
+                location: loc,
+                duration: parseInt(newClass.duration)
             });
             setShowClassModal(false);
-            setNewClass({ ...newClass, subject: '', classCode: '' });
+            setNewClass({ ...newClass, subject: '', classCode: '', duration: 60 });
             fetchData();
         } catch (err) {
             alert(err.response?.data?.msg || 'Error creating class');
@@ -247,6 +248,10 @@ const AdminDashboard = () => {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Radius (meters)</label>
                                 <input type="number" required value={newClass.radius} onChange={e => setNewClass({ ...newClass, radius: e.target.value })} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700">Duration (Minutes)</label>
+                                <input type="number" required value={newClass.duration} onChange={e => setNewClass({ ...newClass, duration: e.target.value })} className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm" />
                             </div>
                             <div className="pt-4">
                                 <button type="submit" className="w-full flex justify-center py-2.5 px-4 rounded-xl shadow-sm font-medium text-white bg-blue-600 hover:bg-blue-700">

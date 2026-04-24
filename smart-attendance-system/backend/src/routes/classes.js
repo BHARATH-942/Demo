@@ -12,14 +12,18 @@ router.post('/', auth, async (req, res) => {
             return res.status(403).json({ msg: 'Not authorized' });
         }
 
-        const { subject, classCode, location, radius } = req.body;
+        const { subject, classCode, location, radius, duration } = req.body;
+
+        // Calculate end time based on duration (in minutes)
+        const endTime = new Date(Date.now() + parseInt(duration || 60) * 60000);
 
         const newClass = new Class({
             subject,
             classCode,
             instructor: req.user.id,
             location,
-            radius
+            radius,
+            endTime
         });
 
         const classObj = await newClass.save();
@@ -51,6 +55,13 @@ router.get('/verify/:sessionCode', auth, async (req, res) => {
         const classObj = await Class.findOne({ classCode: req.params.sessionCode, isActive: true });
         if (!classObj) {
             return res.status(404).json({ msg: 'Invalid or inactive session code', valid: false });
+        }
+
+        // Check if session has expired
+        if (new Date() > classObj.endTime) {
+            classObj.isActive = false;
+            await classObj.save();
+            return res.status(400).json({ msg: 'Session has ended. No more attendance can be logged.', valid: false });
         }
         res.json({ valid: true, class: classObj });
     } catch (err) {

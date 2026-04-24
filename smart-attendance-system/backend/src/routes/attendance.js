@@ -33,6 +33,11 @@ router.post('/mark', auth, async (req, res) => {
             return res.status(404).json({ msg: 'Invalid or inactive session code' });
         }
 
+        // Double check expiration to prevent race conditions
+        if (new Date() > classSession.endTime) {
+            return res.status(400).json({ msg: 'Session has ended. No more attendance can be logged.' });
+        }
+
         // Check if attendance already marked
         let attendance = await Attendance.findOne({ student: req.user.id, classSession: classSession.id });
         if (attendance) {
